@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local config / logs (keep config.example.json; ignore personal tuning configs)
+config.json
+config.local.json
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Tooling artifacts not part of this project (auto-generated / unrelated MCP config)
+AGENTS.md
+process_whitelist.json

@@ -1,0 +1,55 @@
+{
+  "listen": { "ip": "127.0.0.1", "port": 2066 },
+
+  "output": {
+    "backend": "console",
+    "rate_hz": 0,
+    "console": { "every": 10 },
+    "vjoy": {
+      "device_id": 1,
+      "axis_map": {
+        "steer_force": "X",
+        "g_long": "Y",
+        "road_texture": "Z",
+        "kerb": "RX",
+        "understeer": "RY",
+        "oversteer": "RZ"
+      }
+    },
+    "ffbwheel": {
+      "device_index": -1,
+      "device_name_match": "moza",
+      "constant_gain": 1.0,
+      "invert": false,
+      "disable_autocenter": true,
+      "rumble": true,
+      "rumble_road_gain": 0.6,
+      "rumble_kerb_gain": 1.0,
+      "rumble_period_ms": 20
+    }
+  },
+
+  "ffb": {
+    "master_gain": 1.0,
+    "invert_steer": false,
+    "steer_deadzone": 0.02,
+
+    "weight_lateral": 0.6,
+    "weight_aligning": 0.4,
+    "lateral_g_ref_mps2": 18.0,
+    "slip_angle_ref_rad": 0.22,
+
+    "speed_ref_mps": 6.0,
+
+    "understeer": { "threshold": 1.0, "limit": 1.8, "drop": 0.6 },
+    "oversteer": { "threshold": 1.0, "limit": 2.0 },
+
+    "road_gain": 1.0,
+    "kerb_gain": 6.0,
+    "kerb_strip_boost": 0.4,
+
+    "smoothing_alpha": 0.5
+  },
+
+  "stale_timeout_s": 0.5
+}

@@ -1,0 +1,12 @@
+# Core bridge (telemetry parse + FFB synthesis + console output) needs ONLY the standard
+# library — nothing to install for the console backend or the test suite.
+
+# Optional: required only for the vJoy output backend (Windows + vJoy driver installed).
+# pip install pyvjoy
+pyvjoy>=1.0.1 ; platform_system == "Windows"
+
+# Optional: required only for the "ffbwheel" backend (REAL force feedback to a physical
+# wheel like the MOZA R3). pysdl2-dll bundles the SDL2 runtime DLL on Windows/macOS.
+# pip install pysdl2 pysdl2-dll
+pysdl2>=0.9.16
+pysdl2-dll>=2.28.0 ; platform_system == "Windows"
