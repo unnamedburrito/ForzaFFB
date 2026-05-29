@@ -7,12 +7,57 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
-from .config import load_config
+from .config import DEFAULTS, load_config
 from .ffb import FFBEngine
 from .outputs import make_output
 from .telemetry import TelemetryListener
 
 log = logging.getLogger("forza_ffb.bridge")
+
+
+# --- Auto-generated "set any config key" flags ------------------------------------------
+# Every leaf in DEFAULTS gets a `--section-key` flag, typed from its default value, so the
+# whole config is overridable from the command line. Generated from DEFAULTS so it can never
+# drift: new config options get a flag automatically.
+
+def _parse_bool(s: str) -> bool:
+    sl = str(s).strip().lower()
+    if sl in ("true", "1", "yes", "on"):
+        return True
+    if sl in ("false", "0", "no", "off"):
+        return False
+    raise argparse.ArgumentTypeError(f"expected true/false, got {s!r}")
+
+
+def _config_flag_specs(defaults: Dict[str, Any]):
+    """Yield (flag, dest, path, kind, default) for every leaf in *defaults*."""
+    specs = []
+
+    def walk(d: Dict[str, Any], path: tuple) -> None:
+        for k, v in d.items():
+            p = path + (k,)
+            if isinstance(v, dict):
+                walk(v, p)
+            else:
+                flag = "--" + "-".join(p).replace("_", "-")
+                dest = "set__" + "__".join(p)
+                if isinstance(v, bool):       # bool before int (bool is a subclass of int)
+                    kind = "bool"
+                elif isinstance(v, int):
+                    kind = "int"
+                elif isinstance(v, float):
+                    kind = "float"
+                else:
+                    kind = "str"
+                specs.append((flag, dest, p, kind, v))
+
+    walk(defaults, ())
+    return specs
+
+
+# Computed once; used both to build the parser and to apply the overrides.
+_CONFIG_SPECS = _config_flag_specs(DEFAULTS)
+_TYPES = {"int": int, "float": float, "str": str}
 
 
 def run_bridge(cfg: Dict[str, Any], stop: "Optional[StopFlag]" = None) -> None:
@@ -86,16 +131,46 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="ffbwheel constant_gain: peak force the wheel can reach (raise if too light)")
     p.add_argument("--lat-g-ref", type=float,
                    help="lateral_g_ref_mps2: RAISE to soften how fast force builds with cornering/speed")
+    p.add_argument("--rumble-gain", type=float,
+                   help="ffbwheel rumble_gain: master vibration multiplier (LOWER for less off-road buzz; 0 = none)")
+    p.add_argument("--no-rumble", action="store_true",
+                   help="disable the ffbwheel sine vibration entirely (steering force only)")
     p.add_argument("--invert", action="store_true", help="invert steering force sign")
     p.add_argument("-v", "--verbose", action="count", default=0, help="-v info, -vv debug")
     p.add_argument("--show-format", action="store_true",
                    help="print the parsed Forza packet formats & key offsets, then exit")
     p.add_argument("--list-devices", action="store_true",
                    help="list FFB-capable wheels/joysticks SDL can see, then exit")
+
+    # Generic overrides for EVERY config key (e.g. --ffb-smoothing-alpha 0.3,
+    # --output-ffbwheel-disable-autocenter false, --ffb-understeer-drop 0.4).
+    group = p.add_argument_group(
+        "config overrides (one per config key)",
+        "Set any config value directly; booleans take true/false. The short flags above are "
+        "convenient aliases for the most-used keys and take precedence if both are given.")
+    for flag, dest, path, kind, default in _CONFIG_SPECS:
+        dotted = ".".join(path)
+        if kind == "bool":
+            group.add_argument(flag, dest=dest, type=_parse_bool, default=None, metavar="BOOL",
+                               help=f"{dotted} (default: {str(default).lower()})")
+        else:
+            group.add_argument(flag, dest=dest, type=_TYPES[kind], default=None,
+                               metavar=kind.upper(), help=f"{dotted} (default: {default})")
     return p
 
 
 def _apply_overrides(cfg: Dict[str, Any], args: argparse.Namespace) -> None:
+    # 1) Generic per-key overrides (any --section-key flag the user passed).
+    for _flag, dest, path, _kind, _default in _CONFIG_SPECS:
+        val = getattr(args, dest, None)
+        if val is None:
+            continue
+        d = cfg
+        for k in path[:-1]:
+            d = d.setdefault(k, {})
+        d[path[-1]] = val
+
+    # 2) Short friendly aliases (take precedence over the generic forms above).
     if args.ip:
         cfg["listen"]["ip"] = args.ip
     if args.port:
@@ -114,6 +189,10 @@ def _apply_overrides(cfg: Dict[str, Any], args: argparse.Namespace) -> None:
         cfg["output"].setdefault("ffbwheel", {})["constant_gain"] = args.wheel_gain
     if args.lat_g_ref is not None:
         cfg["ffb"]["lateral_g_ref_mps2"] = args.lat_g_ref
+    if args.rumble_gain is not None:
+        cfg["output"].setdefault("ffbwheel", {})["rumble_gain"] = args.rumble_gain
+    if args.no_rumble:
+        cfg["output"].setdefault("ffbwheel", {})["rumble"] = False
     if args.invert:
         cfg["ffb"]["invert_steer"] = True
 

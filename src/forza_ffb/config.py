@@ -44,8 +44,9 @@ DEFAULTS: Dict[str, Any] = {
             "invert": False,             # flip force direction if the wheel pulls the wrong way
             "disable_autocenter": True,  # stop the wheel's own spring fighting our force
             "rumble": True,              # add a sine vibration from road_texture + kerb
-            "rumble_road_gain": 0.6,
-            "rumble_kerb_gain": 1.0,
+            "rumble_gain": 1.0,          # master multiplier on ALL rumble (lower = less buzz)
+            "rumble_road_gain": 0.6,     # surface roughness / off-road buzz -> rumble
+            "rumble_kerb_gain": 1.0,     # kerb / bump jolts -> rumble
             "rumble_period_ms": 20,
         },
     },

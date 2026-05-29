@@ -15,6 +15,14 @@ force-feedback signal** from the car physics, and sends it to your wheel one of 
 > your wheel. That synthesis is the whole point — the steering force you feel is *this tool's*,
 > not the game's own FFB.
 
+> ### ⚠️ Tested hardware — use at your own risk
+> This has only been tested on a **MOZA R3** wheelbase with the **MOZA ES** wheel. It may not
+> behave correctly on other wheelbases, wheels, or force-feedback devices — available effects,
+> gains, and force direction can differ between devices. **Use it entirely at your own risk.**
+> When trying it on any wheel, start with a low `--wheel-gain`, keep a hand near the wheel (or
+> the base's power switch), and confirm the feel at low speed before driving hard. The authors
+> accept no liability for damage or injury (see the MIT license).
+
 ---
 
 ## Supported games
@@ -119,6 +127,9 @@ plus an optional **sine** vibration from `road_texture`/`kerb`. Auto-selects a d
 contains `device_name_match` (default `"moza"`), else the first FFB-capable device; or pin it with
 `--device-index`.
 
+> Only verified on a **MOZA R3 + MOZA ES** wheel. Other devices are unverified — use at your own
+> risk (see the disclaimer at the top of this README).
+
 > **⚠️ Only one app can drive the wheel's FFB at a time.** This backend **takes over** the wheel,
 > so turn the game's own wheel FFB down/off (in-game FFB = 0, and/or disable FFB in MOZA Pit House
 > Horizon-compatibility mode) so they don't fight. The force you feel is then this tool's.
@@ -157,6 +168,8 @@ python -m forza_ffb [options]      (or: forza_ffb [options] after install)
 | `--gain F` | float | ffb | `master_gain` — overall steering-force strength |
 | `--wheel-gain F` | float | ffbwheel | `constant_gain` — peak motor torque the wheel reaches (raise if too light) |
 | `--lat-g-ref F` | float | ffb | `lateral_g_ref_mps2` — RAISE to soften how fast force builds with cornering/speed |
+| `--rumble-gain F` | float | ffbwheel | Master vibration multiplier — LOWER for less off-road buzz (`0` = none) |
+| `--no-rumble` | flag | ffbwheel | Disable the sine vibration entirely (steering force only) |
 | `--invert` | flag | ffb | Invert steering-force sign (if the wheel pulls the wrong way) |
 | `-v`, `--verbose` | count | all | `-v` = info logging, `-vv` = debug |
 | `--show-format` | flag | — | Print the Forza packet formats & key offsets, then exit |
@@ -164,12 +177,32 @@ python -m forza_ffb [options]      (or: forza_ffb [options] after install)
 
 CLI flags override the config file, which overrides the built-in defaults.
 
+### Every config key is also a flag
+
+Beyond the short flags above, **every** option in the [configuration reference](#configuration-reference)
+has an auto-generated `--section-key` flag, so you can override anything from the command line
+without editing a file. The rule: take the dotted config path, join with `-`, and replace `_`
+with `-`. Booleans take an explicit `true`/`false`. Examples:
+
+| Config key | Flag |
+|------------|------|
+| `ffb.smoothing_alpha` | `--ffb-smoothing-alpha 0.3` |
+| `ffb.understeer.drop` | `--ffb-understeer-drop 0.4` |
+| `output.ffbwheel.disable_autocenter` | `--output-ffbwheel-disable-autocenter false` |
+| `output.ffbwheel.rumble_road_gain` | `--output-ffbwheel-rumble-road-gain 0.2` |
+| `output.vjoy.axis_map.steer_force` | `--output-vjoy-axis-map-steer-force RZ` |
+| `stale_timeout_s` | `--stale-timeout-s 1.5` |
+
+Run `python -m forza_ffb --help` to see the full list. The short flags in the table above are
+convenient aliases for the most-used keys and **take precedence** if both forms are given.
+
 ---
 
 ## Configuration reference
 
 Copy `config.example.json`, edit, and pass `--config my.json`. Any subset can be supplied; missing
-keys fall back to the defaults below (deep-merged).
+keys fall back to the defaults below (deep-merged). **Every key here is also settable on the
+command line** as `--section-key` (see [Every config key is also a flag](#every-config-key-is-also-a-flag)).
 
 ### `listen`
 | Key | Default | Meaning |
@@ -191,8 +224,9 @@ keys fall back to the defaults below (deep-merged).
 | `output.ffbwheel.invert` | `false` | Flip force direction at the backend |
 | `output.ffbwheel.disable_autocenter` | `true` | Turn off the device's DirectInput autocenter spring |
 | `output.ffbwheel.rumble` | `true` | Add a sine vibration from `road_texture` + `kerb` |
-| `output.ffbwheel.rumble_road_gain` | `0.6` | Road-texture → rumble magnitude |
-| `output.ffbwheel.rumble_kerb_gain` | `1.0` | Kerb → rumble magnitude |
+| `output.ffbwheel.rumble_gain` | `1.0` | Master multiplier on all rumble (lower = less off-road buzz) |
+| `output.ffbwheel.rumble_road_gain` | `0.6` | Road-texture (surface roughness) → rumble magnitude |
+| `output.ffbwheel.rumble_kerb_gain` | `1.0` | Kerb / bump jolts → rumble magnitude |
 | `output.ffbwheel.rumble_period_ms` | `20` | Sine period (smaller = higher-frequency buzz) |
 
 Default `axis_map`: `steer_force→X, g_long→Y, road_texture→Z, kerb→RX, understeer→RY, oversteer→RZ`.
@@ -235,6 +269,9 @@ most (all overridable live via CLI without editing files):
 - **Too light at the limit** → raise `--wheel-gain` (e.g. `1.3`).
 - **Everything too strong/weak** → adjust `--gain` (overall) or your wheel's FFB % in its driver.
 - **Pulls the wrong way** → add `--invert`.
+- **Too much off-road / surface vibration** → lower `--rumble-gain` (e.g. `0.4`), or `--no-rumble`
+  to remove it. For finer control, set `rumble_road_gain` (surface buzz) vs `rumble_kerb_gain`
+  (bumps/kerbs) separately in the config.
 - **Jittery / notchy** → lower `ffb.smoothing_alpha` (e.g. `0.3`); **laggy** → raise it toward `1.0`.
 
 The MOZA R3 is a low-torque (≈3.8 Nm) base, so keep Pit House FFB strength near 100% and shape the

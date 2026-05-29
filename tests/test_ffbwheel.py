@@ -69,9 +69,88 @@ class TestLazyImportAndFactory(unittest.TestCase):
         cfg = copy.deepcopy(DEFAULTS)
         cfg["output"]["backend"] = "moza"
         cfg["output"]["ffbwheel"]["constant_gain"] = 2.5
+        cfg["output"]["ffbwheel"]["rumble_gain"] = 0.4
         b = make_output(cfg)
         self.assertEqual(b.constant_gain, 2.5)
+        self.assertEqual(b.rumble_gain, 0.4)
         self.assertEqual(b.device_name_match, "moza")
+
+
+class TestCLIOverrides(unittest.TestCase):
+    """The live-tuning CLI flags must land on the right config keys."""
+
+    def _cfg(self, argv):
+        from forza_ffb.bridge import _build_parser, _apply_overrides
+        from forza_ffb.config import load_config
+        args = _build_parser().parse_args(argv)
+        cfg = load_config(None)
+        _apply_overrides(cfg, args)
+        return cfg
+
+    def test_rumble_flags(self):
+        cfg = self._cfg(["--backend", "ffbwheel", "--rumble-gain", "0.3"])
+        self.assertEqual(cfg["output"]["ffbwheel"]["rumble_gain"], 0.3)
+        self.assertTrue(cfg["output"]["ffbwheel"]["rumble"])  # still enabled
+        cfg = self._cfg(["--backend", "ffbwheel", "--no-rumble"])
+        self.assertFalse(cfg["output"]["ffbwheel"]["rumble"])
+
+    def test_force_tuning_flags(self):
+        cfg = self._cfg(["--wheel-gain", "1.4", "--lat-g-ref", "24", "--gain", "0.8", "--invert"])
+        self.assertEqual(cfg["output"]["ffbwheel"]["constant_gain"], 1.4)
+        self.assertEqual(cfg["ffb"]["lateral_g_ref_mps2"], 24.0)
+        self.assertEqual(cfg["ffb"]["master_gain"], 0.8)
+        self.assertTrue(cfg["ffb"]["invert_steer"])
+
+    def test_no_overrides_leaves_defaults(self):
+        cfg = self._cfg(["--backend", "ffbwheel"])
+        self.assertEqual(cfg["output"]["ffbwheel"]["rumble_gain"], 1.0)
+        self.assertTrue(cfg["output"]["ffbwheel"]["rumble"])
+
+
+class TestGenericConfigFlags(unittest.TestCase):
+    """Every config leaf must be settable via an auto-generated --section-key flag."""
+
+    def _leaf_count(self, d):
+        return sum(self._leaf_count(v) if isinstance(v, dict) else 1 for v in d.values())
+
+    def test_every_leaf_has_a_flag(self):
+        from forza_ffb.bridge import _CONFIG_SPECS
+        from forza_ffb.config import DEFAULTS
+        self.assertEqual(len(_CONFIG_SPECS), self._leaf_count(DEFAULTS))
+
+    def _cfg(self, argv):
+        from forza_ffb.bridge import _build_parser, _apply_overrides
+        from forza_ffb.config import load_config
+        args = _build_parser().parse_args(argv)
+        cfg = load_config(None)
+        _apply_overrides(cfg, args)
+        return cfg
+
+    def test_float_nested_bool_and_axismap(self):
+        cfg = self._cfg([
+            "--ffb-smoothing-alpha", "0.3",
+            "--ffb-understeer-drop", "0.4",
+            "--output-ffbwheel-disable-autocenter", "false",
+            "--output-vjoy-axis-map-steer-force", "RZ",
+            "--stale-timeout-s", "1.5",
+            "--output-console-every", "5",
+        ])
+        self.assertEqual(cfg["ffb"]["smoothing_alpha"], 0.3)
+        self.assertEqual(cfg["ffb"]["understeer"]["drop"], 0.4)
+        self.assertFalse(cfg["output"]["ffbwheel"]["disable_autocenter"])
+        self.assertEqual(cfg["output"]["vjoy"]["axis_map"]["steer_force"], "RZ")
+        self.assertEqual(cfg["stale_timeout_s"], 1.5)
+        self.assertEqual(cfg["output"]["console"]["every"], 5)
+
+    def test_bad_bool_value_rejected(self):
+        from forza_ffb.bridge import _build_parser
+        with self.assertRaises(SystemExit):  # argparse exits on a bad --...-rumble value
+            _build_parser().parse_args(["--output-ffbwheel-rumble", "maybe"])
+
+    def test_short_alias_takes_precedence_over_generic(self):
+        # If both forms are given, the friendly short flag wins (applied last).
+        cfg = self._cfg(["--gain", "1.0", "--ffb-master-gain", "2.0"])
+        self.assertEqual(cfg["ffb"]["master_gain"], 1.0)
 
 
 if __name__ == "__main__":

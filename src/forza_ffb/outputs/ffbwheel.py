@@ -79,6 +79,7 @@ class FFBWheelOutput(OutputBackend):
         self.invert = bool(wcfg.get("invert", False))
         self.disable_autocenter = bool(wcfg.get("disable_autocenter", True))
         self.rumble_enabled = bool(wcfg.get("rumble", True))
+        self.rumble_gain = float(wcfg.get("rumble_gain", 1.0))  # master multiplier on rumble
         self.rumble_road_gain = float(wcfg.get("rumble_road_gain", 0.6))
         self.rumble_kerb_gain = float(wcfg.get("rumble_kerb_gain", 1.0))
         self.rumble_period_ms = int(wcfg.get("rumble_period_ms", 20))
@@ -217,7 +218,9 @@ class FFBWheelOutput(OutputBackend):
 
         if self.rumble_enabled and self._sine_id is not None:
             self._sine_effect.periodic.magnitude = rumble_magnitude(
-                effects.road_texture, effects.kerb, self.rumble_road_gain, self.rumble_kerb_gain)
+                effects.road_texture, effects.kerb,
+                self.rumble_road_gain * self.rumble_gain,
+                self.rumble_kerb_gain * self.rumble_gain)
             sdl2.SDL_HapticUpdateEffect(self._haptic, self._sine_id, ctypes.byref(self._sine_effect))
 
     def close(self) -> None:

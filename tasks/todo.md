@@ -71,6 +71,10 @@ official MOZA SDK + SimHub plugin exist. User chose: build a custom SDL/DirectIn
 - [x] Added .gitignore (py caches, venvs; excludes AGENTS.md + process_whitelist.json tooling artifacts)
 - [x] Added LICENSE (MIT, matches pyproject) — holder placeholder <YOUR NAME> to fill in
 - [x] Verified config.example.json == DEFAULTS; 32/32 tests green; --show-format offsets match README
+- [x] Off-road vibration control: added rumble_gain master multiplier + --rumble-gain/--no-rumble.
+- [x] Full CLI coverage: auto-generate a `--section-key` flag for EVERY config leaf (40 flags),
+      generated from DEFAULTS so it can't drift; booleans take true/false; short friendly flags
+      kept as aliases (take precedence). Documented in README; 39 tests green.
 - [ ] User: git init + push to GitHub (replace LICENSE holder first)
 
 ## STATUS: core complete & verified on WSL; FFB-wheel backend authored & API-verified,

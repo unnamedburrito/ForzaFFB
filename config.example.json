@@ -23,6 +23,7 @@
       "invert": false,
       "disable_autocenter": true,
       "rumble": true,
+      "rumble_gain": 1.0,
       "rumble_road_gain": 0.6,
       "rumble_kerb_gain": 1.0,
       "rumble_period_ms": 20
