@@ -27,16 +27,18 @@ force-feedback signal** from the car physics, and sends it to your wheel one of 
 
 ## Supported games
 
-The bridge works with any Forza title that has the **Data Out** UDP feature:
+**Only Forza Horizon 6 has been tested.** The other titles below share the same Data Out wire
+format (or are auto-detected by packet length), so they *should* work — but they are unverified;
+treat them as best-effort and tune carefully.
 
-| Game | Data Out? | Packet format | Works here |
-|------|-----------|---------------|------------|
-| Forza Horizon 6 | ✅ | Horizon, 324 B | ✅ (primary target) |
-| Forza Horizon 5 | ✅ | Horizon, 324 B | ✅ |
-| Forza Horizon 4 | ✅ | Horizon, 324 B | ✅ |
-| Forza Motorsport (2023) | ✅ | Car Dash, 331 B | ✅ (auto-detected) |
-| Forza Motorsport 7 | ✅ | Car Dash, 311 B | ✅ (auto-detected) |
-| **Forza Horizon 3 and older** | ❌ | — | ❌ — no Data Out feature exists |
+| Game | Data Out? | Packet format | Status |
+|------|-----------|---------------|--------|
+| **Forza Horizon 6** | ✅ | Horizon, 324 B | ✅ **Tested** — the only verified title |
+| Forza Horizon 5 | ✅ | Horizon, 324 B | Should work — identical 324 B format (untested) |
+| Forza Horizon 4 | ✅ | Horizon, 324 B | Should work — identical 324 B format (untested) |
+| Forza Motorsport (2023) | ✅ | Car Dash, 331 B | Should work — auto-detected by length (untested) |
+| Forza Motorsport 7 | ✅ | Car Dash, 311 B | Should work — auto-detected by length (untested) |
+| Forza Horizon 3 & older | ❌ | — | ❌ Not possible — no Data Out telemetry exists |
 
 Data Out was introduced in Forza Motorsport 7 (2017); the first *Horizon* title with it is FH4.
 **FH3 and earlier emit no telemetry on any port**, so this tool has nothing to read from them.
@@ -350,6 +352,26 @@ Run `python -m forza_ffb --show-format` for the full list.
 | Forza Horizon 3 / older | Not supported — those games have no Data Out telemetry. |
 
 ---
+
+## Credits & references
+
+Built on / verified against these projects and resources:
+
+**Output targets**
+- [vJoy](https://github.com/jshafer817/vJoy) — virtual joystick driver (original on [SourceForge](https://sourceforge.net/projects/vjoystick/))
+- [pyvjoy](https://github.com/tidzo/pyvjoy) — Python bindings for vJoy (pip-installable fork: [maxofbritton/pyvjoy](https://github.com/maxofbritton/pyvjoy))
+- [Joystick Gremlin](https://github.com/WhiteMagic/JoystickGremlin) — joystick remapping/scripting that consumes vJoy
+- [PySDL2](https://github.com/py-sdl/py-sdl2) — SDL2 bindings used by the `ffbwheel` backend ([pysdl2-dll](https://github.com/a-hurst/pysdl2-dll) bundles the runtime)
+- [SDL](https://github.com/libsdl-org/SDL) — the underlying [SDL_Haptic](https://wiki.libsdl.org/SDL2/CategoryHaptic) force-feedback API
+
+**Forza telemetry format**
+- [richstokes/Forza-data-tools](https://github.com/richstokes/Forza-data-tools) — packet-format field tables the parser offsets were derived from
+- [satyajiit/forza-horizon-6-moza-bridge](https://github.com/satyajiit/forza-horizon-6-moza-bridge) — FH6 format + driver-input offset cross-validation
+- [Forza "Data Out" telemetry structure (community forum)](https://forums.forza.net/t/data-out-telemetry-variables-and-structure/535984) and the [official FH6 Data Out docs](https://support.forza.net/hc/en-us/articles/51744149102611-Forza-Horizon-6-Data-Out-Documentation)
+- [MOZA SDK](https://mozaracing.com/pages/sdk) — reference for MOZA-native FFB (the "augment instead of replace" path)
+
+This project is independent and is not affiliated with or endorsed by Microsoft, Turn 10/Playground
+Games, MOZA Racing, or any project listed above.
 
 ## License
 
